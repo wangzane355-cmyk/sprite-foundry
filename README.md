@@ -4,7 +4,9 @@
 
 ## 打开工作台
 
-双击 `Launch.cmd`。首次安装依赖需要可用的 Python 3.11 或更高版本。浏览器入口是 `http://127.0.0.1:18764`。
+**Windows x64 免安装版。** 从 [GitHub Releases](https://github.com/wangzane355-cmyk/sprite-foundry/releases/latest) 下载 `Windows-x64.zip`，完整解压到可写目录，再双击 `SpriteFoundry.exe`。工作台会在默认浏览器打开。使用时保持启动窗口开启，关闭窗口可退出。素材库的 `.data` 文件夹在 EXE 旁边。
+
+**从源码运行。** 双击 `Launch.cmd`。首次安装依赖需要可用的 Python 3.11 或更高版本。浏览器入口是 `http://127.0.0.1:18764`。
 
 1. 点「载入示例」直接预览和导出。也可以导入 PNG、JPEG 或 WebP。
 2. 生成新素材时，选类型和共享风格，每行填写 `素材名 | 描述`。单批最多 8 个主题、12 张候选。
@@ -37,4 +39,16 @@
 
 Chrome 实测通过样本载入、透明底预览、调整尺寸、ZIP 下载和本地素材持久化。示例 ZIP 的七个图集矩形均与独立 PNG 像素一致。Unity 6000.1.5f1 在隔离工程中加载了全部七个 Sprite，并验证尺寸、Alpha、锚点、PPU、采样与 Mipmap。
 
-当前账户的真实 OpenAI 生成请求返回 `429 credit_balance_exhausted`。生成任务的成功、部分失败保留和多候选处理使用真实 ImageGen 图片作为本地替身验证。具备额度的账户可继续验证工作台直接生成路径。
+首次联机验证因测试账户的 API 额度不足返回 `429 credit_balance_exhausted`。生成任务的成功、部分失败保留和多候选处理使用真实 ImageGen 图片作为本地替身验证。
+
+Windows x64 发布包在 Windows 11 上从带中文和空格的目录解压运行。测试时应用的 PATH 仅包含 Windows 系统目录。已验证启动时传出浏览器打开请求、示例载入、JPEG 和 WebP 导入、Unity ZIP 下载，以及重启后恢复素材库。
+
+## 构建 Windows 版
+
+在 Windows x64 上用 Python 3.13 创建构建环境，然后运行以下命令。脚本生成免安装 ZIP 和 SHA-256 校验文件。
+
+```powershell
+python -m venv .venv
+.venv\Scripts\python.exe -m pip install -r requirements-windows.txt
+.\Build-Windows.ps1 -Version 0.1.0 -OutputDirectory "D:\codex\artifacts\sprite-foundry"
+```

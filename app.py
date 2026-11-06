@@ -13,6 +13,7 @@ from pathlib import Path
 import re
 import socket
 import sqlite3
+import sys
 import threading
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
@@ -33,6 +34,7 @@ ROOT = Path(__file__).resolve().parent
 MODEL = os.environ.get("SPRITE_FOUNDRY_IMAGE_MODEL", "gpt-image-2.5-flare")
 ORIGIN = "http://127.0.0.1"
 DEFAULT_PORT = 18764
+PORTABLE_PORT = 18767
 IMAGE_API = "https://api.openai.com/v1/images/generations"
 STATIC = {
     "/": ("index.html", "text/html; charset=utf-8"),
@@ -361,23 +363,40 @@ class LocalServer(ThreadingHTTPServer):
 
 
 def main():
+    portable = getattr(sys, "frozen", False)
+    data_root = Path(sys.executable).parent if portable else ROOT
     parser = argparse.ArgumentParser(description="Sprite Foundry 本地素材工作台")
-    parser.add_argument("--port", type=int, default=DEFAULT_PORT)
-    parser.add_argument("--data", type=Path, default=ROOT / ".data")
-    parser.add_argument("--open", action="store_true", help="打开默认浏览器")
+    parser.add_argument("--port", type=int, default=PORTABLE_PORT if portable else DEFAULT_PORT)
+    parser.add_argument("--data", type=Path, default=data_root / ".data")
+    parser.add_argument("--open", action=argparse.BooleanOptionalAction, default=portable, help="打开默认浏览器")
     args = parser.parse_args()
-    with LocalServer(("127.0.0.1", args.port), Handler) as server:
-        server.library = Library(args.data)
-        server.library.recover_jobs()
-        url = f"{ORIGIN}:{server.server_port}"
-        print(f"Sprite Foundry  {url}", flush=True)
-        if args.open:
-            webbrowser.open(url)
-        try:
+
+    try:
+        with LocalServer(("127.0.0.1", args.port), Handler) as server:
+            server.library = Library(args.data)
+            server.library.recover_jobs()
+            url = f"{ORIGIN}:{server.server_port}"
+            print(f"Sprite Foundry  {url}", flush=True)
+            if portable:
+                print("Keep this window open while using Sprite Foundry. Close it to stop the app.", flush=True)
+            if args.open:
+                webbrowser.open(url)
             server.serve_forever()
-        except KeyboardInterrupt:
-            pass
+    except KeyboardInterrupt:
+        pass
+    except (OSError, sqlite3.Error) as error:
+        if not portable:
+            raise
+        print(f"Could not start Sprite Foundry: {error}", file=sys.stderr)
+        print(f"Check that {args.data} is writable and close any other copy using port {args.port}.", file=sys.stderr)
+        if sys.stdin.isatty():
+            try:
+                input("Press Enter to close.")
+            except (EOFError, KeyboardInterrupt):
+                pass
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

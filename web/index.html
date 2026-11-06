@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sprite Foundry · 2D 素材工作台</title>
+  <link rel="stylesheet" href="/style.css">
+  <script defer src="/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Sprite Foundry 首页"><span class="mark" aria-hidden="true">✦</span><span>Sprite Foundry</span></a>
+    <div class="top-meta"><span>2D 素材工作台</span><span class="status-pill" id="connection">正在连接</span></div>
+  </header>
+  <main>
+    <section class="hero">
+      <div><p class="eyebrow">ASSET PRODUCTION / 01</p><h1>游戏素材工坊</h1><p>从一组美术设定，到可导入游戏的透明精灵。</p></div>
+      <div class="hero-actions">
+        <button class="button secondary" type="button" id="load-samples">载入示例</button>
+        <label class="button secondary upload" for="files">↑ 导入图片<input type="file" id="files" multiple accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"></label>
+      </div>
+    </section>
+    <div class="workspace">
+      <section class="panel compose">
+        <div class="panel-head"><span class="step">01</span><h2>生成</h2></div>
+        <form id="generate">
+          <label for="kind">素材类型</label>
+          <select id="kind"><option value="icon">道具图标</option><option value="prop">场景道具</option><option value="sprite">角色 / 单位精灵</option></select>
+          <label for="preset">共享风格</label>
+          <select id="preset">
+            <option value="">选择风格起点</option>
+            <option value="neon">科幻装备 · 霓虹金属</option>
+            <option value="rts">战术 RTS · 等距视角</option>
+            <option value="pixel">复古像素 · 有限色板</option>
+          </select>
+          <textarea id="style" rows="4" maxlength="1500" aria-label="风格规范" placeholder="画风、相机角度、调色板、主光方向…"></textarea>
+          <label for="entries">主题列表 <span>每行一个</span></label>
+          <textarea id="entries" rows="5" required placeholder="ion_battery | 青色离子电池，黄铜护框&#10;repair_kit | 深蓝色便携维修箱"></textarea>
+          <p class="hint">写作「素材名 | 描述」，最多 8 个主题。</p>
+          <div class="fields">
+            <div><label for="variants">每个主题候选</label><select id="variants"><option>1</option><option>2</option><option>3</option></select></div>
+            <div><label for="quality">生成质量</label><select id="quality"><option value="low">草稿</option><option value="medium" selected>标准</option><option value="high">高</option></select></div>
+          </div>
+          <details id="api-settings"><summary>图像服务设置</summary>
+            <label for="key">OpenAI API 密钥</label>
+            <input id="key" type="password" autocomplete="off" placeholder="仅用于本次页面会话">
+            <p class="hint" id="model"></p>
+          </details>
+          <button class="button primary full" id="generate-button" type="submit">✦ 生成候选</button>
+          <p class="hint">生成将向 OpenAI 提交提示词并按账户计费。导入、预览和导出在本机处理。</p>
+        </form>
+        <div id="job" class="job" hidden aria-live="polite"><strong id="job-state"></strong><progress id="progress" value="0" max="1"></progress><p id="job-message"></p></div>
+      </section>
+      <section class="panel review">
+        <div class="panel-head"><span class="step">02</span><h2>候选与素材库</h2><span class="count" id="asset-count">0 张</span></div>
+        <div class="toolbar">
+          <div class="filters" aria-label="筛选素材"><button type="button" class="chip active" data-filter="all" aria-pressed="true">全部</button><button type="button" class="chip" data-filter="selected" aria-pressed="false">已选 <span id="selected-count">0</span></button></div>
+          <div class="filters"><button type="button" class="text-button" id="select-visible">全选当前</button><button type="button" class="text-button" id="clear-selection">清空</button></div>
+        </div>
+        <div id="empty" class="empty">
+          <span class="empty-icon" aria-hidden="true">✧</span>
+          <h3 id="empty-title">这里会显示素材候选</h3>
+          <p id="empty-text">生成一组素材，或载入示例体验预览和导出。</p>
+        </div>
+        <div class="grid" id="assets"></div>
+      </section>
+      <section class="panel inspector">
+        <div class="panel-head"><span class="step">03</span><h2>预览与导出</h2></div>
+        <div class="preview-title"><strong id="preview-name">选择一张素材</strong><button type="button" class="text-button" id="toggle-bg" aria-pressed="false">浅色底</button></div>
+        <div class="preview checker" id="preview-area"><span id="preview-placeholder">实际导出预览</span><img id="preview-image" hidden alt="处理后的精灵预览"></div>
+        <p class="hint" id="preview-info" aria-live="polite">点击素材图像查看处理结果。</p>
+        <form id="export">
+          <div class="fields">
+            <div><label for="size">画布 / px</label><select id="size"><option>32</option><option>64</option><option selected>128</option><option>256</option><option>512</option></select></div>
+            <div><label for="margin">留白 / px</label><input id="margin" type="number" min="0" max="64" value="8" required></div>
+          </div>
+          <div class="fields">
+            <div><label for="pivot">对齐与锚点</label><select id="pivot"><option value="center">居中</option><option value="bottom">底部接地</option></select></div>
+            <div><label for="filter">采样</label><select id="filter"><option value="smooth">平滑</option><option value="pixel">最近邻</option></select></div>
+          </div>
+          <label for="ppu">Unity 每单位像素（PPU）</label>
+          <input id="ppu" type="number" min="1" max="4096" value="128" required>
+          <label class="check"><input id="atlas" type="checkbox" checked>同时打包图集与切片坐标</label>
+          <button class="button primary full" id="export-button" type="submit" disabled>↓ 导出 Unity ZIP</button>
+          <p class="hint">包含透明 PNG、Unity .meta 和素材清单。</p>
+        </form>
+      </section>
+    </div>
+    <div id="notice" class="notice" role="status" hidden></div>
+  </main>
+  <footer><span>SPRITE FOUNDRY</span><span>本地素材库 · PNG / UNITY</span></footer>
+</body>
+</html>
